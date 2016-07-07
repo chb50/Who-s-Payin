@@ -1,6 +1,7 @@
 package com.eggbeatstudios.cedric.whospayin;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
@@ -155,5 +156,11 @@ public class CreateGameInstance extends AppCompatActivity {
 
     public static String getServiceName() {
         return mServiceName;
+    }
+
+    //onClick's
+    public void goMainMenu(View view) {
+        Intent i = new Intent(this, MainActivity.class);
+        startActivity(i);
     }
 }

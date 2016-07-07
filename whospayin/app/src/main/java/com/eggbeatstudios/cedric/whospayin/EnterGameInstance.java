@@ -1,40 +1,56 @@
 package com.eggbeatstudios.cedric.whospayin;
 
+import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
 import android.os.Handler;
 import android.os.Message;
+import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MotionEvent;
+import android.view.View;
 import android.widget.Adapter;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 
+import java.io.IOException;
 import java.net.InetAddress;
+import java.net.Socket;
 import java.util.List;
 import java.util.Vector;
 
-public class EnterGameInstance extends AppCompatActivity {
+public class EnterGameInstance extends AppCompatActivity implements ListFrag.listFragListener{
 
     /* Begin server Management Variables */
     private static NsdManager mNsdManager;
     private static NsdManager.DiscoveryListener mDiscoveryListener;
     private static NsdManager.ResolveListener mResolveListener;
     //server variables
+    private static Socket mSocket;
     private static NsdServiceInfo mServiceInfo;
     private static String mServiceName;
 
     /*End server management variables */
 
+
     /* variables for displaying games */
     private List<String> gameInstances = new Vector<String>(); //where games are stored to be displayed to the user
+    private ListFrag serverListFrag;
+    private ListView gamesList;
+
     Handler updateUI = new Handler() {
 
         @Override
         public void handleMessage(Message msg) {
-            ListView gamesList = (ListView)findViewById(R.id.availibleGames);
+            serverListFrag = (ListFrag)getFragmentManager().findFragmentById(R.id.availibleGames);
+            gamesList = serverListFrag.lv;
             //specify context as "EnterGameInstance"
             ListAdapter gameListAdapter = new ArrayAdapter<>(EnterGameInstance.this, android.R.layout.simple_list_item_1, gameInstances);
             gamesList.setAdapter(gameListAdapter);
@@ -67,7 +83,7 @@ public class EnterGameInstance extends AppCompatActivity {
 
         //begin searching for services
         mNsdManager.discoverServices(
-                mServiceInfo.getServiceType(), NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
+                "_http._tcp.", NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
         isDiscovered = true;
 
 
@@ -87,10 +103,14 @@ public class EnterGameInstance extends AppCompatActivity {
         super.onResume();
         if (!isDiscovered) {
             mNsdManager.discoverServices(
-                    mServiceInfo.getServiceType(), NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
+                    "_http._tcp.", NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
             isDiscovered = true;
         }
     }
+
+//    public void initializeSocket() throws IOException {
+//        mSocket = new Socket();
+//    }
 
     public void initializeDiscoveryListener() {
 
@@ -107,7 +127,13 @@ public class EnterGameInstance extends AppCompatActivity {
             public void onServiceFound(NsdServiceInfo service) {
                 // A service was found!  Do something with it.
                 Log.d(TAG, "Service discovery success" + service);
-                if (!service.getServiceType().equals(mServiceInfo.getServiceType())) {
+                /*TODO: Error: Attempt to invoke virtual method 'java.lang.String android.net.nsd.NsdServiceInfo.getServiceName()' on a null object reference here
+                there was a bug causing the app to crash if the user did not
+                attempt to create a game instance first.
+                tried to hard code the service type, but caused a null pointer
+                error with the vector container
+                 */
+                if (!service.getServiceType().equals("_http._tcp.")) {
                     // Service type is the string containing the protocol and
                     // transport layer for this service.
                     Log.d(TAG, "Unknown Service Type: " + service.getServiceType());
@@ -138,7 +164,6 @@ public class EnterGameInstance extends AppCompatActivity {
 
                     Thread updateListThread = new Thread(updateList);
                     updateListThread.start();
-
                 }
             }
 
@@ -213,6 +238,34 @@ public class EnterGameInstance extends AppCompatActivity {
         };
     }
 
+
+    //ran with the joinGame method to move player to a lobby activity
+    @Override
+    public boolean selectItem() {
+        serverListFrag = (ListFrag)getFragmentManager().findFragmentById(R.id.availibleGames);
+        gamesList = serverListFrag.lv;
+
+        //finds the highlighted server entry
+        for (int iter = 0; iter < gamesList.getCount(); ++iter) {
+            View v = (View)gamesList.getItemAtPosition(iter);
+            Drawable vBack = v.getBackground();
+            //check for which item is highlighted
+            if (vBack instanceof ColorDrawable && Color.YELLOW == ((ColorDrawable)vBack).getColor()) {
+                //TODO: make new "lobby" activity for client and create intent to it here
+                return true; //if item was selected
+            }
+        }
+
+        return false; //if no item was selected
+    }
+
+    public void joinGame(View view) {
+        //TODO: add button functionality with "selectItem" to move to a "lobby" activity
+    }
+
+
+
+
     //setters
     public void setServiceInfo(NsdServiceInfo si) {
         mServiceInfo = si;
@@ -220,5 +273,11 @@ public class EnterGameInstance extends AppCompatActivity {
 
     public void setServiceName(String sn) {
         mServiceName = sn;
+    }
+
+    //onClick's
+    public void goMainMenu(View view) {
+        Intent i = new Intent(this, MainActivity.class);
+        startActivity(i);
     }
 }

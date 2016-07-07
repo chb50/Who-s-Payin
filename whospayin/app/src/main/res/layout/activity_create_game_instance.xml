@@ -64,5 +64,6 @@
         android:id="@+id/returnMainMenuButton"
         android:layout_below="@+id/listView"
         android:layout_toRightOf="@+id/errorMessage"
-        android:layout_toEndOf="@+id/errorMessage" />
+        android:layout_toEndOf="@+id/errorMessage"
+        android:onClick="goMainMenu" />
 </RelativeLayout>
