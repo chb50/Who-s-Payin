@@ -13,7 +13,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="@string/creating_game"
+        android:text="@string/game_lobby"
         android:id="@+id/createGameTitle"
         android:layout_alignParentTop="true"
         android:layout_alignParentLeft="true"
@@ -30,23 +30,15 @@
         android:layout_alignParentStart="true"
         android:layout_marginTop="35dp" />
 
-    <ListView
-        android:layout_width="wrap_content"
-        android:layout_height="300dp"
-        android:id="@+id/listView"
-        android:layout_below="@+id/playerNameText"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true" />
-
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/start_game"
         android:id="@+id/startGameButton"
         android:onClick="startGame"
-        android:layout_below="@+id/listView"
-        android:layout_alignRight="@+id/listView"
-        android:layout_alignEnd="@+id/listView" />
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -62,8 +54,19 @@
         android:layout_height="wrap_content"
         android:text="@string/return_to_main_menu"
         android:id="@+id/returnMainMenuButton"
-        android:layout_below="@+id/listView"
+        android:onClick="goMainMenu"
+        android:layout_alignParentBottom="true"
         android:layout_toRightOf="@+id/errorMessage"
-        android:layout_toEndOf="@+id/errorMessage"
-        android:onClick="goMainMenu" />
+        android:layout_toEndOf="@+id/errorMessage" />
+
+    <fragment
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:name="com.eggbeatstudios.cedric.whospayin.ListFrag"
+        android:id="@+id/fragment"
+        android:layout_below="@+id/playerNameText"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        tools:layout="@layout/list_frag" />
+
 </RelativeLayout>
