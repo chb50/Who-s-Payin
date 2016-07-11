@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="com.eggbeatstudios.cedric.whospayin.CreateGameInstance">
+    <!--
+    NOTE: items that are false will be coded to appear only for the lobby host
+    -->
+    <group>
+        <!--
+        Group Host Items, only room leader can access
+        -->
+        <item
+            android:id="@+id/kick_player"
+            android:visible="false"
+            app:showAsAction="never"
+            android:title="@string/kick_player"
+            android:onClick="kickPlayer" />
+        <item
+            android:id="@+id/options"
+            android:visible="false"
+            app:showAsAction="never"
+            android:title="@string/game_options"
+            android:onClick="selectOptions" />
+    </group>
+
+    <item
+        android:id="@+id/about"
+        android:visible="true"
+        app:showAsAction="never"
+        android:title="@string/about"
+        android:onClick="aboutGame"/>
+</menu>

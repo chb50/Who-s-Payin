@@ -18,4 +18,7 @@
     <string name="host">Host:</string>
     <string name="ready">Ready</string>
     <string name="not_ready">Not Ready</string>
+    <string name="kick_player">Kick Player</string>
+    <string name="game_options">Game Options</string>
+    <string name="about">About Game</string>
 </resources>

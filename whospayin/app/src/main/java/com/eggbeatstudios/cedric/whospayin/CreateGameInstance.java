@@ -10,13 +10,25 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 
-public class CreateGameInstance extends AppCompatActivity {
+
+/*TODO: Add logic to separate the game host from other players
+    1) if the player is not host, then they came from the EnterGameInstance activity
+    and we have to pass information from that activity to this one about the player's name
+    and make sure that the player only stays connected to this instance of the game and no other
+
+    2) if the player is host, give them access to the administrative tabs in the overflow
+    menu such as kicking other players and setting the options for the game
+ */
+
+public class CreateGameInstance extends AppCompatActivity implements ListFrag.listFragListener{
 
     //references for registering a service
     private static ServerSocket mServerSocket;
@@ -59,6 +71,19 @@ public class CreateGameInstance extends AppCompatActivity {
         Log.i(TAG, "Successfully registered service");
     }
 
+    //Overflow menu stuff
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.game_menu, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int itemID = item.getItemId();
+        return true;
+    }
+
+    //Service control
     @Override
     protected void onPause() {
         if (isRegistered) {
@@ -77,6 +102,7 @@ public class CreateGameInstance extends AppCompatActivity {
         }
     }
 
+    //service registration
     //registers a server on the local network so clients can pick it up
     public void registerService(int port) {
         // Create the NsdServiceInfo object, and populate it.
@@ -162,5 +188,32 @@ public class CreateGameInstance extends AppCompatActivity {
     public void goMainMenu(View view) {
         Intent i = new Intent(this, MainActivity.class);
         startActivity(i);
+    }
+
+    public void startGame(View view) {
+        TextView sGButton = (TextView)findViewById(R.id.startGameButton);
+        if (sGButton.getText() == "Start Game") {
+            //TODO: add code here to start game once every player is ready
+        }
+        if (sGButton.getText() == "Ready") {
+            sGButton.setText(R.string.not_ready);
+            //TODO: add code to send to server that this user is ready to play
+        } else {
+            sGButton.setText(R.string.ready);
+            //TODO: add code to send to server that this user is not ready to play
+        }
+    }
+    public void kickPlayer(MenuItem mItem) {
+    }
+    public void selectOptions(MenuItem mItem) {
+    }
+    public void aboutGame(MenuItem mItem) {
+    }
+
+    //ListFrag stuff
+
+    @Override
+    public boolean selectItem() {
+        return false;
     }
 }
