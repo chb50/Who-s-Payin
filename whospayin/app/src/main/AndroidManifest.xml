@@ -18,7 +18,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".CreateGameInstance" />
-        <activity android:name=".EnterGameInstance"></activity>
+        <activity android:name=".EnterGameInstance" />
     </application>
 
 </manifest>

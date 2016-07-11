@@ -5,6 +5,7 @@ import android.app.Fragment;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,7 +16,7 @@ import android.widget.ListView;
  * Created by Cedric on 7/7/2016.
  */
 
-//TODO: app is crashing when user clicks on a game instance
+
 public class ListFrag extends Fragment {
 
     public ListView lv;
@@ -59,15 +60,17 @@ public class ListFrag extends Fragment {
         return view;
     }
 
-    //TODO: crash may be occurring here?
+
+
     public void highlightItem(AdapterView<?> parent, View view, int i, long l) {
         //the parent is what contains the entries, the view is the entry that was clicked
 
         //reset all entries to white background to de-select
         for (int iter = 0; iter < parent.getCount(); ++iter) {
-            View v = (View)parent.getItemAtPosition(iter);
+            View v = parent.getChildAt(iter);
             v.setBackgroundColor(Color.WHITE);
         }
+
         //set selected entry to have yellow background
         view.setBackgroundColor(Color.YELLOW);
     }

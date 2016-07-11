@@ -108,6 +108,8 @@ public class EnterGameInstance extends AppCompatActivity implements ListFrag.lis
         }
     }
 
+
+
 //    public void initializeSocket() throws IOException {
 //        mSocket = new Socket();
 //    }
@@ -131,7 +133,7 @@ public class EnterGameInstance extends AppCompatActivity implements ListFrag.lis
                 there was a bug causing the app to crash if the user did not
                 attempt to create a game instance first.
                 tried to hard code the service type, but caused a null pointer
-                error with the vector container
+                error with the vector container (NOTE: calling mServiceInfo.getServiceName() in thread)
                  */
                 if (!service.getServiceType().equals("_http._tcp.")) {
                     // Service type is the string containing the protocol and
@@ -183,7 +185,7 @@ public class EnterGameInstance extends AppCompatActivity implements ListFrag.lis
                                 gameInstances.remove(s.getServiceName());
                             } catch (Exception e) {
                                 e.printStackTrace();
-                                Log.e(TAG, "Could not access gameInstances vector", e);
+                                Log.e(TAG, "Could not remove from gameInstances vector", e);
                             }
                         }
                         updateUI.sendEmptyMessage(0);
@@ -247,20 +249,34 @@ public class EnterGameInstance extends AppCompatActivity implements ListFrag.lis
 
         //finds the highlighted server entry
         for (int iter = 0; iter < gamesList.getCount(); ++iter) {
-            View v = (View)gamesList.getItemAtPosition(iter);
+            View v = gamesList.getChildAt(iter);
             Drawable vBack = v.getBackground();
             //check for which item is highlighted
             if (vBack instanceof ColorDrawable && Color.YELLOW == ((ColorDrawable)vBack).getColor()) {
-                //TODO: make new "lobby" activity for client and create intent to it here
                 return true; //if item was selected
             }
         }
-
         return false; //if no item was selected
     }
 
     public void joinGame(View view) {
-        //TODO: add button functionality with "selectItem" to move to a "lobby" activity
+        //clear the gameInstance list
+        Runnable clearList = new Runnable() {
+            @Override
+            public void run() {
+                gameInstances.clear();
+            }
+        };
+
+        Thread cl = new Thread(clearList);
+        cl.start();
+
+        if (selectItem()) {
+            //TODO: need to pass the server information to the lobby activity (CreateGameInstance)
+            Intent i = new Intent(this, CreateGameInstance.class);
+            Log.d(TAG, "print test 1");
+            startActivity(i);
+        }
     }
 
 

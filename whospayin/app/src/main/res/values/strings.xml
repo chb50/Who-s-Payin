@@ -14,4 +14,8 @@
     <string name="current_name">Current Name: </string>
     <string name="error_msg">Cannot create game instance</string>
     <string name="return_to_main_menu">Return to Main Menu</string>
+    <string name="game_lobby">Game Lobby</string>
+    <string name="host">Host:</string>
+    <string name="ready">Ready</string>
+    <string name="not_ready">Not Ready</string>
 </resources>
