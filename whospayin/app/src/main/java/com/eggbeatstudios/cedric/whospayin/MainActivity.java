@@ -22,7 +22,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         //display current name if saved
-        SharedPreferences sharePref = getSharedPreferences("user_name", Context.MODE_PRIVATE);
+        SharedPreferences sharePref = getSharedPreferences("user_names", Context.MODE_PRIVATE);
         if (!sharePref.getString("username", "").equals("")) {
 
             String savedName = getString(R.string.current_name) + sharePref.getString("username", "");
@@ -43,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         //make a shared preference to save user's name for future games
-        SharedPreferences sharePref = getSharedPreferences("user_name", Context.MODE_PRIVATE);
+        SharedPreferences sharePref = getSharedPreferences("user_names", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharePref.edit();
         editor.putString("username", usernameInput.getText().toString());
         editor.apply();
@@ -51,20 +51,28 @@ public class MainActivity extends AppCompatActivity {
         //notify user that their name has been saved
         Toast.makeText(MainActivity.this, "Saved!", Toast.LENGTH_SHORT).show();
         TextView currentName = (TextView)findViewById(R.id.displayCurrentName);
-        String newName = getString(R.string.current_name) + usernameInput.getText().toString();
+        String newName = getString(R.string.current_name) + " " + usernameInput.getText().toString();
         //NOTE: Android was crying about concatenation within the setText field, so had to store in seperate variable first
         currentName.setText(newName);
+
+        //clear text field
+        usernameInput.setText("");
     }
 
     //enter game button takes user to "EnterGameInstance" activity
     public void enterGame(View view) {
+        SharedPreferences sharePref = getSharedPreferences("user_names", Context.MODE_PRIVATE);
         Intent i = new Intent(this, EnterGameInstance.class);
+        i.putExtra("clientName", sharePref.getString("username",""));
         startActivity(i);
     }
 
     //create game button takes user to "CreateGameInstance" activity
     public void createGame(View view) {
+        SharedPreferences sharePref = getSharedPreferences("user_names", Context.MODE_PRIVATE);
         Intent i = new Intent(this, CreateGameInstance.class);
+        //pass the player's user name to the CreateGameInstance
+        i.putExtra("hostName", sharePref.getString("username",""));
         startActivity(i);
     }
 }

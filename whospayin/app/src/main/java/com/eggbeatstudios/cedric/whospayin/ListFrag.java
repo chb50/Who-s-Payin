@@ -3,6 +3,7 @@ package com.eggbeatstudios.cedric.whospayin;
 import android.app.Activity;
 import android.app.Fragment;
 import android.graphics.Color;
+import android.net.nsd.NsdServiceInfo;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -26,7 +27,7 @@ public class ListFrag extends Fragment {
     public static final String TAG = ListFrag.class.getName();
 
     public interface listFragListener {
-        boolean selectItem();
+        void selectItem();
     }
 
     @Override

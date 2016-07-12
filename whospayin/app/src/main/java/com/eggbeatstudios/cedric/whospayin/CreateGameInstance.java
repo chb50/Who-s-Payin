@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
+import android.os.Handler;
+import android.os.Message;
 import android.renderscript.RenderScript;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -13,10 +15,15 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.ListAdapter;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.util.List;
+import java.util.Vector;
 
 
 /*TODO: Add logic to separate the game host from other players
@@ -27,18 +34,40 @@ import java.net.ServerSocket;
     2) if the player is host, give them access to the administrative tabs in the overflow
     menu such as kicking other players and setting the options for the game
  */
+/* TODO: learn how to pass information between different instances of the activity
+    need to pass client info to server
+    need to pass server info to client
+ */
 
 public class CreateGameInstance extends AppCompatActivity implements ListFrag.listFragListener{
 
     //references for registering a service
-    private static ServerSocket mServerSocket;
-    private static NsdManager mNsdManager;
-    private static NsdServiceInfo serviceInfo;
-    private static NsdManager.RegistrationListener mRegistrationListener; //interface
-    private static String mServiceName;
+    private ServerSocket mServerSocket;
+    private NsdManager mNsdManager;
+    private NsdServiceInfo serviceInfo;
+    private NsdManager.RegistrationListener mRegistrationListener; //interface
+    private String mServiceName;
 
     //boolean for testing if service is already registered
-    private static boolean isRegistered;
+    private boolean isRegistered;
+
+    //Player Information
+    private String hostName = null;
+    private List<String> playerNames = new Vector<>(5,5);
+
+    //handler stuff
+    private ListView playerList;
+    //handle for player info
+    Handler addPlayer = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            ListFrag playerListFrag = (ListFrag)getFragmentManager().findFragmentById(R.id.playerNamesList);
+            playerList = playerListFrag.lv;
+            ListAdapter playerAdapt = new ArrayAdapter<>(CreateGameInstance.this, android.R.layout.simple_list_item_1,
+                    playerNames);
+            playerList.setAdapter(playerAdapt);
+        }
+    };
 
     //Tag for log info in debugging
     private static final String TAG = CreateGameInstance.class.getName();
@@ -48,27 +77,58 @@ public class CreateGameInstance extends AppCompatActivity implements ListFrag.li
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_create_game_instance);
 
-        //attempt to register service on activity creation
-        Log.d(TAG, "Creating a server");
-        try {
-            initializeServerSocket();
-            Log.d(TAG, "Created Socket");
-            initializeRegistrationListener();
-            Log.d(TAG, "Initialized Registration Listener");
-            registerService(mServerSocket.getLocalPort());
-        } catch (IOException e) {
-            //notify user that connection was not established
-            TextView errorMsg = (TextView)findViewById(R.id.errorMessage);
-            errorMsg.setText(getString(R.string.error_msg));
-            errorMsg.setTextColor(Color.RED);
+        //get player info from the main activity
+        final Bundle playerInfo = getIntent().getExtras();
+        if (!playerInfo.getBoolean("isClient")) {
+            //then this player is the host
 
-            //notify log that exception was thrown during service registration
-            e.printStackTrace();
-            Log.e(TAG, "IO Exception thrown, Failed to register service.", e);
-            return;
+            hostName = playerInfo.getString("hostName");
+            //attempt to register service on activity creation
+            Log.d(TAG, "Creating a server");
+            try {
+                initializeServerSocket();
+                Log.d(TAG, "Created Socket");
+                initializeRegistrationListener();
+                Log.d(TAG, "Initialized Registration Listener");
+                registerService(mServerSocket.getLocalPort());
+            } catch (IOException e) {
+                //notify user that connection was not established
+                TextView errorMsg = (TextView)findViewById(R.id.errorMessage);
+                errorMsg.setText(getString(R.string.error_msg));
+                errorMsg.setTextColor(Color.RED);
+
+                //notify log that exception was thrown during service registration
+                e.printStackTrace();
+                Log.e(TAG, "IO Exception thrown, Failed to register service.", e);
+                return;
+            }
+
+            Log.i(TAG, "Successfully registered service");
+
+            //TODO: add logic so that the right host will be displayed as host
+            TextView displayHost = (TextView)findViewById(R.id.hostName);
+            String hostNameSet = displayHost.getText() + " " + hostName;
+            displayHost.setText(hostNameSet);
+        } else {
+            //then this player is a client
+            Runnable addPlayerName = new Runnable() {
+                @Override
+                public void run() {
+                    synchronized (this) {
+                        try {
+                            playerNames.add(playerNames.size(), playerInfo.getString("clientName"));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            Log.e(TAG, "cannot add player name", e);
+                        }
+                    }
+                    addPlayer.sendEmptyMessage(0);
+                }
+            };
+            Thread aPN = new Thread(addPlayerName);
+            aPN.start();
         }
 
-        Log.i(TAG, "Successfully registered service");
     }
 
     //Overflow menu stuff
@@ -86,7 +146,7 @@ public class CreateGameInstance extends AppCompatActivity implements ListFrag.li
     //Service control
     @Override
     protected void onPause() {
-        if (isRegistered) {
+        if (hostName != null && isRegistered) {
             mNsdManager.unregisterService(mRegistrationListener);
             isRegistered = false;
         }
@@ -96,7 +156,7 @@ public class CreateGameInstance extends AppCompatActivity implements ListFrag.li
     @Override
     protected void onResume() {
         super.onResume();
-        if (!isRegistered) {
+        if (hostName != null && !isRegistered) {
             mNsdManager.registerService(serviceInfo, NsdManager.PROTOCOL_DNS_SD, mRegistrationListener);
             isRegistered = true;
         }
@@ -110,7 +170,7 @@ public class CreateGameInstance extends AppCompatActivity implements ListFrag.li
 
         // The name is subject to change based on conflicts
         // with other services advertised on the same network.
-        serviceInfo.setServiceName("WhosPayinGameInstance");
+        serviceInfo.setServiceName("WhosPayin: " + hostName + "'s game");
         serviceInfo.setServiceType("_http._tcp.");
         serviceInfo.setPort(port);
 
@@ -168,19 +228,19 @@ public class CreateGameInstance extends AppCompatActivity implements ListFrag.li
     }
 
     //getters
-    public static NsdManager getNsdManager() {
+    public NsdManager getNsdManager() {
         return mNsdManager;
     }
 
-    public static ServerSocket getServerSocket() {
+    public ServerSocket getServerSocket() {
         return mServerSocket;
     }
 
-    public static NsdServiceInfo getServiceInfo() {
+    public NsdServiceInfo getServiceInfo() {
         return serviceInfo;
     }
 
-    public static String getServiceName() {
+    public String getServiceName() {
         return mServiceName;
     }
 
@@ -213,7 +273,7 @@ public class CreateGameInstance extends AppCompatActivity implements ListFrag.li
     //ListFrag stuff
 
     @Override
-    public boolean selectItem() {
-        return false;
+    public void selectItem() {
+
     }
 }

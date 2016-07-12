@@ -24,8 +24,10 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Vector;
 
+//TODO: add the ability to filter a search for game instances
 public class EnterGameInstance extends AppCompatActivity implements ListFrag.listFragListener{
 
     /* Begin server Management Variables */
@@ -34,16 +36,22 @@ public class EnterGameInstance extends AppCompatActivity implements ListFrag.lis
     private static NsdManager.ResolveListener mResolveListener;
     //server variables
     private static Socket mSocket;
-    private static NsdServiceInfo mServiceInfo;
-    private static String mServiceName;
+    private NsdServiceInfo mServiceInfo;
+    private String mServiceName;
+    private List<NsdServiceInfo> listOfServices = new Vector<NsdServiceInfo>(5,5); //used to find and connect to the service the user requests
+    NsdServiceInfo selectedService;
 
     /*End server management variables */
 
 
     /* variables for displaying games */
-    private List<String> gameInstances = new Vector<String>(); //where games are stored to be displayed to the user
+    private List<String> gameInstances = new Vector<String>(5,5); //where games are stored to be displayed to the user
     private ListFrag serverListFrag;
     private ListView gamesList;
+
+    //client info stuff
+    private static boolean isClient;
+    private String clientName;
 
     Handler updateUI = new Handler() {
 
@@ -52,7 +60,8 @@ public class EnterGameInstance extends AppCompatActivity implements ListFrag.lis
             serverListFrag = (ListFrag)getFragmentManager().findFragmentById(R.id.availibleGames);
             gamesList = serverListFrag.lv;
             //specify context as "EnterGameInstance"
-            ListAdapter gameListAdapter = new ArrayAdapter<>(EnterGameInstance.this, android.R.layout.simple_list_item_1, gameInstances);
+            ListAdapter gameListAdapter = new ArrayAdapter<>(EnterGameInstance.this, android.R.layout.simple_list_item_1,
+                    gameInstances);
             gamesList.setAdapter(gameListAdapter);
         }
 
@@ -69,12 +78,13 @@ public class EnterGameInstance extends AppCompatActivity implements ListFrag.lis
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_enter_game_instance);
 
+        //get client name
+        Bundle playerInfo = getIntent().getExtras();
+        clientName = playerInfo.getString("clientName");
+
         //initialize parameters
         mNsdManager = (NsdManager)getSystemService(NSD_SERVICE);
 
-        //request service info of the server activity
-        setServiceInfo(CreateGameInstance.getServiceInfo());
-        setServiceName(CreateGameInstance.getServiceName());
 
         //initialize listeners
         initializeDiscoveryListener();
@@ -85,6 +95,8 @@ public class EnterGameInstance extends AppCompatActivity implements ListFrag.lis
         mNsdManager.discoverServices(
                 "_http._tcp.", NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
         isDiscovered = true;
+
+
 
 
     }
@@ -135,14 +147,13 @@ public class EnterGameInstance extends AppCompatActivity implements ListFrag.lis
                 tried to hard code the service type, but caused a null pointer
                 error with the vector container (NOTE: calling mServiceInfo.getServiceName() in thread)
                  */
+
+                final NsdServiceInfo s = service;
                 if (!service.getServiceType().equals("_http._tcp.")) {
                     // Service type is the string containing the protocol and
                     // transport layer for this service.
                     Log.d(TAG, "Unknown Service Type: " + service.getServiceType());
-                } else if (service.getServiceName().contains("WhosPayinGameInstance")){ //finds a game instance
-                    // The name of the service tells the user what they'd be
-                    // connecting to. It could be "Bob's Chat App".
-                    mNsdManager.resolveService(service, mResolveListener);
+                } else if (service.getServiceName().contains("WhosPayin:")){ //finds a game instance
 
                     //add code to update user interface about the game that was found
 
@@ -154,7 +165,8 @@ public class EnterGameInstance extends AppCompatActivity implements ListFrag.lis
                         public void run() {
                             synchronized (this) {
                                 try {
-                                    gameInstances.add(gameInstances.size(), mServiceInfo.getServiceName());
+                                    gameInstances.add(gameInstances.size(), s.getServiceName());
+                                    listOfServices.add(listOfServices.size(), s); //add service info to list of services
                                 } catch (Exception e) {
                                     e.printStackTrace();
                                     Log.e(TAG, "Could not access gameInstances vector", e);
@@ -183,6 +195,7 @@ public class EnterGameInstance extends AppCompatActivity implements ListFrag.lis
                         synchronized (this) {
                             try {
                                 gameInstances.remove(s.getServiceName());
+                                listOfServices.remove(s); //remover service from list
                             } catch (Exception e) {
                                 e.printStackTrace();
                                 Log.e(TAG, "Could not remove from gameInstances vector", e);
@@ -243,52 +256,65 @@ public class EnterGameInstance extends AppCompatActivity implements ListFrag.lis
 
     //ran with the joinGame method to move player to a lobby activity
     @Override
-    public boolean selectItem() {
+    public void selectItem() {
         serverListFrag = (ListFrag)getFragmentManager().findFragmentById(R.id.availibleGames);
+        String selectedServiceName;
         gamesList = serverListFrag.lv;
 
+        //TODO: this code works, but is probably not the optimal way of doing things
         //finds the highlighted server entry
+        //position = id + 'number of header views'
         for (int iter = 0; iter < gamesList.getCount(); ++iter) {
             View v = gamesList.getChildAt(iter);
             Drawable vBack = v.getBackground();
             //check for which item is highlighted
             if (vBack instanceof ColorDrawable && Color.YELLOW == ((ColorDrawable)vBack).getColor()) {
-                return true; //if item was selected
+                selectedServiceName = gamesList.getItemAtPosition(iter).toString();
+                Log.d(TAG, "this service is highlighted: " + selectedServiceName);
+                //try implementing for loop in a classic "index" fashion
+                for (int iterTwo = 0; iterTwo < listOfServices.size(); ++iterTwo) {
+                    if (listOfServices.get(iterTwo).getServiceName().equals(selectedServiceName)) {
+                        selectedService = listOfServices.get(iterTwo);
+                        return;
+                    }
+                }
             }
         }
-        return false; //if no item was selected
     }
 
     public void joinGame(View view) {
-        //clear the gameInstance list
-        Runnable clearList = new Runnable() {
-            @Override
-            public void run() {
-                gameInstances.clear();
-            }
-        };
-
-        Thread cl = new Thread(clearList);
-        cl.start();
-
-        if (selectItem()) {
+        selectItem(); //sets selectedService
+        if (selectedService != null) {
             //TODO: need to pass the server information to the lobby activity (CreateGameInstance)
+            //clear the gameInstance list and list of services
+            Runnable clearList = new Runnable() {
+                @Override
+                public void run() {
+                    synchronized (this) {
+                        try {
+                            gameInstances.clear();
+                            listOfServices.clear();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            Log.e(TAG, "Cannot clear list", e);
+                        }
+                    }
+                }
+            };
+            Thread cl = new Thread(clearList);
+            cl.start();
+
+            //resolve the service (dont know if this will carry to the next activity
+            mNsdManager.resolveService(selectedService, mResolveListener);
+            isClient = true;
+            //set up intent
             Intent i = new Intent(this, CreateGameInstance.class);
-            Log.d(TAG, "print test 1");
+            i.putExtra("isClient", isClient);
+            i.putExtra("clientName", clientName);
             startActivity(i);
+        } else {
+            Log.d(TAG, "selectedService is NULL");
         }
-    }
-
-
-
-
-    //setters
-    public void setServiceInfo(NsdServiceInfo si) {
-        mServiceInfo = si;
-    }
-
-    public void setServiceName(String sn) {
-        mServiceName = sn;
     }
 
     //onClick's
