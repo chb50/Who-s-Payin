@@ -69,6 +69,11 @@ public class CreateGameInstance extends AppCompatActivity implements ListFrag.li
         }
     };
 
+    //database stuff
+    private static PlayerDBHandler dbHandler;
+    private Player hostPlayer;
+    private Player clientPlayer;
+
     //Tag for log info in debugging
     private static final String TAG = CreateGameInstance.class.getName();
 
@@ -83,7 +88,15 @@ public class CreateGameInstance extends AppCompatActivity implements ListFrag.li
             //then this player is the host
 
             hostName = playerInfo.getString("hostName");
-            //attempt to register service on activity creation
+
+            /* database initialization
+             */
+            //parameters 2 and 4 were hard coded by me, so we don need anything important in there
+            dbHandler = new PlayerDBHandler(this, null, null, 1);
+            hostPlayer = new Player(hostName, true);
+
+            /*attempt to register service on activity creation
+             */
             Log.d(TAG, "Creating a server");
             try {
                 initializeServerSocket();
@@ -91,6 +104,9 @@ public class CreateGameInstance extends AppCompatActivity implements ListFrag.li
                 initializeRegistrationListener();
                 Log.d(TAG, "Initialized Registration Listener");
                 registerService(mServerSocket.getLocalPort());
+                //add host to database
+                hostPlayer.setID(dbHandler.addPlayer(hostPlayer));
+                //TODO: test to make sure that the database is indeed being populated
             } catch (IOException e) {
                 //notify user that connection was not established
                 TextView errorMsg = (TextView)findViewById(R.id.errorMessage);
@@ -105,11 +121,11 @@ public class CreateGameInstance extends AppCompatActivity implements ListFrag.li
 
             Log.i(TAG, "Successfully registered service");
 
-            //TODO: add logic so that the right host will be displayed as host
             TextView displayHost = (TextView)findViewById(R.id.hostName);
             String hostNameSet = displayHost.getText() + " " + hostName;
             displayHost.setText(hostNameSet);
         } else {
+            //TODO: will get hostname from database (use is_host)
             //then this player is a client
             Runnable addPlayerName = new Runnable() {
                 @Override
@@ -160,6 +176,15 @@ public class CreateGameInstance extends AppCompatActivity implements ListFrag.li
             mNsdManager.registerService(serviceInfo, NsdManager.PROTOCOL_DNS_SD, mRegistrationListener);
             isRegistered = true;
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (hostPlayer != null) {
+            dbHandler.clearPlayers();
+            Log.d(TAG, "Emptying database");
+        }
+        super.onDestroy();
     }
 
     //service registration
@@ -245,10 +270,6 @@ public class CreateGameInstance extends AppCompatActivity implements ListFrag.li
     }
 
     //onClick's
-    public void goMainMenu(View view) {
-        Intent i = new Intent(this, MainActivity.class);
-        startActivity(i);
-    }
 
     public void startGame(View view) {
         TextView sGButton = (TextView)findViewById(R.id.startGameButton);

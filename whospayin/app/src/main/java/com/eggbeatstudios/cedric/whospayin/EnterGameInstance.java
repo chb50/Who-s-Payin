@@ -318,8 +318,4 @@ public class EnterGameInstance extends AppCompatActivity implements ListFrag.lis
     }
 
     //onClick's
-    public void goMainMenu(View view) {
-        Intent i = new Intent(this, MainActivity.class);
-        startActivity(i);
-    }
 }
