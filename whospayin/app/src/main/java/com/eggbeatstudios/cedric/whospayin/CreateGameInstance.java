@@ -21,8 +21,10 @@ import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.List;
 import java.util.Vector;
 
@@ -74,6 +76,10 @@ public class CreateGameInstance extends AppCompatActivity implements ListFrag.li
     private static PlayerDBHandler dbHandler;
     private Player hostPlayer;
 
+    //boolean used to start game and end client searching
+    private boolean isGameStart = false;
+    private boolean isDestroyedCalled = false;
+
     //Tag for log info in debugging
     private static final String TAG = CreateGameInstance.class.getName();
 
@@ -123,6 +129,17 @@ public class CreateGameInstance extends AppCompatActivity implements ListFrag.li
         displayHost.setText(hostNameSet);
         //TODO: will get hostname from database (use is_host)
 
+        //create thread to check for new clients
+//        Runnable waitForPlayers = new Runnable() {
+//            @Override
+//            public void run() {
+//                while (!isGameStart && !isDestroyedCalled) {
+//                    Player clientPlayer = new Player(readPlayerNames(mServerSocket), false);
+//                    playerNames.add(playerNames.size(), clientPlayer.getPlayerName());
+//                }
+//            }
+//        };
+
     }
 
     //Overflow menu stuff
@@ -137,24 +154,6 @@ public class CreateGameInstance extends AppCompatActivity implements ListFrag.li
         return true;
     }
 
-    //Service control
-    @Override
-    protected void onPause() {
-        if (isRegistered) {
-            mNsdManager.unregisterService(mRegistrationListener);
-            isRegistered = false;
-        }
-        super.onPause();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (!isRegistered) {
-            mNsdManager.registerService(serviceInfo, NsdManager.PROTOCOL_DNS_SD, mRegistrationListener);
-            isRegistered = true;
-        }
-    }
 
     @Override
     protected void onDestroy() {
@@ -162,6 +161,17 @@ public class CreateGameInstance extends AppCompatActivity implements ListFrag.li
             dbHandler.clearPlayers();
             Log.d(TAG, "Emptying database");
         }
+        try {
+            mServerSocket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.e(TAG, "Cannot close server socket", e);
+        }
+
+        //only deregister on activity destruction
+        mNsdManager.unregisterService(mRegistrationListener);
+        isDestroyedCalled = true;
+
         super.onDestroy();
     }
 
@@ -274,5 +284,22 @@ public class CreateGameInstance extends AppCompatActivity implements ListFrag.li
     @Override
     public void selectItem() {
 
+    }
+
+    //info exchange with clients
+    //TODO: make sure that this function is ran on a separate thread
+    public String readPlayerNames(ServerSocket sSocket) {
+        try {
+            Socket clientSocket = sSocket.accept();
+            DataInputStream dis = new DataInputStream(clientSocket.getInputStream());
+            String pName = dis.readUTF();
+            clientSocket.close();
+            return pName;
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.e(TAG, "Cannot create client socket", e);
+        }
+
+        return null;
     }
 }

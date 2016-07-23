@@ -13,7 +13,7 @@ public class PlayerDBHandler extends SQLiteOpenHelper {
 
     /*database handling variables
      */
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
     //the database name
     private static final String DATABASE_NAME = "WPplayers.db";
     //the table name
@@ -22,6 +22,7 @@ public class PlayerDBHandler extends SQLiteOpenHelper {
     public static final String COLUMN_ID = "_id";
     public static final String COLUMN_PLAYER_NAME = "player_name";
     public static final String COLUMN_IS_HOST = "is_host";
+    public static final String COLUMN_IS_READY = "is_ready";
 
     /*base handler functions
      */
@@ -37,7 +38,8 @@ public class PlayerDBHandler extends SQLiteOpenHelper {
         String query = "CREATE TABLE " + TABLE_PLAYERS + "(" +
                 COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 COLUMN_PLAYER_NAME + " TEXT, " +
-                COLUMN_IS_HOST + " BOOLEAN " +
+                COLUMN_IS_HOST + " BOOLEAN, " +
+                COLUMN_IS_READY + " BOOLEAN " +
                 ");";
 
         //how we execute queries on android (db is passed in as parameter)
@@ -47,7 +49,7 @@ public class PlayerDBHandler extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int i, int i1) {
         //recreate the table
-        db.execSQL("DROP_TABLE_IF_EXISTS " + TABLE_PLAYERS + ";");
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_PLAYERS + ";");
         onCreate(db);
     }
 
@@ -59,6 +61,7 @@ public class PlayerDBHandler extends SQLiteOpenHelper {
 
         values.put(COLUMN_PLAYER_NAME, player.getPlayerName());
         values.put(COLUMN_IS_HOST, player.getIsHost());
+        values.put(COLUMN_IS_READY, player.getIsReady());
 
         SQLiteDatabase db = getWritableDatabase();
 
@@ -86,6 +89,7 @@ public class PlayerDBHandler extends SQLiteOpenHelper {
                 deletedPlayer.setID(id);
                 deletedPlayer.setPlayerName(pName);
                 deletedPlayer.setIsHost(c.getInt(c.getColumnIndex(COLUMN_IS_HOST)) > 0);
+                deletedPlayer.setIsReady(false);
             }
             c.moveToNext();
         }

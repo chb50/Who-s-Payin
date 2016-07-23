@@ -13,13 +13,17 @@ import android.widget.ArrayAdapter;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.List;
 import java.util.Vector;
 
 public class LobbyInstance extends AppCompatActivity implements ListFrag.listFragListener{
 
-    //server stuff
+    //connection stuff
     private NsdManager mNsdManager;
     private NsdManager.ResolveListener mResolveListener;
     private NsdServiceInfo mServiceInfo;
@@ -68,6 +72,9 @@ public class LobbyInstance extends AppCompatActivity implements ListFrag.listFra
         mNsdManager = (NsdManager)getSystemService(NSD_SERVICE);
         mNsdManager.resolveService(selectedService, mResolveListener);
 
+//        //send player info to server
+//        sendPlayerName(mServiceInfo);
+
         //TODO: what needs to happen is that the client get all players from the server's database
         // after which the client updates their list with that information
         Runnable addPlayerName = new Runnable() {
@@ -113,7 +120,22 @@ public class LobbyInstance extends AppCompatActivity implements ListFrag.listFra
         };
     }
 
+    //ListFrag interface items
     public void selectItem() {
+
+    }
+
+    //server communication
+    public void sendPlayerName(NsdServiceInfo sInfo) {
+        try {
+            Socket mSocket = new Socket(sInfo.getServiceName(), sInfo.getPort());
+            DataOutputStream dos = new DataOutputStream(mSocket.getOutputStream());
+            dos.writeUTF(clientPlayer.getPlayerName());
+            mSocket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.e(TAG, "Could not create client socket", e);
+        }
 
     }
 }

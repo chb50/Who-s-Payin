@@ -35,7 +35,6 @@ public class EnterGameInstance extends AppCompatActivity implements ListFrag.lis
     /* Begin server Management Variables */
     private static NsdManager mNsdManager;
     private static NsdManager.DiscoveryListener mDiscoveryListener;
-    private static NsdManager.ResolveListener mResolveListener;
     //server variables
     private static Socket mSocket;
     private NsdServiceInfo mServiceInfo;

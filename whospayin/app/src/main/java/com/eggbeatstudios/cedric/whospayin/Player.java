@@ -12,17 +12,21 @@ public class Player {
     private int _id;
     private String _player_name;
     private boolean _is_host; //while this is a boolean value, the boolean is represented as a bit in SQL
+    private boolean _is_ready;
 
     public Player() {
+        this._is_ready = false;
     }
 
     public Player(String pName) {
         this._player_name = pName;
+        this._is_ready = false;
     }
 
     public Player(String pName, boolean isHost) {
         this._player_name = pName;
         this._is_host = isHost;
+        this._is_ready = false; //player assumed to not be ready on creation
     }
 
     //setters
@@ -38,6 +42,8 @@ public class Player {
         this._is_host = isHost;
     }
 
+    public void setIsReady(boolean isReady) { this._is_ready = isReady; }
+
     //getters
 
     public int getID() {
@@ -48,7 +54,7 @@ public class Player {
         return this._player_name;
     }
 
-    public boolean getIsHost() {
-        return this._is_host;
-    }
+    public boolean getIsHost() { return this._is_host; }
+
+    public boolean getIsReady() { return this._is_ready; }
 }
