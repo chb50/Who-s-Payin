@@ -2,6 +2,7 @@ package com.eggbeatstudios.cedric.whospayin;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
@@ -51,7 +52,7 @@ public class CreateGameInstance extends AppCompatActivity implements ListFrag.li
     //boolean for testing if service is already registered
     private boolean isRegistered;
 
-    //Player Information
+    //Player Information for displaying
     private String hostName = null;
     private List<String> playerNames = new Vector<>(5,5);
 
@@ -69,10 +70,9 @@ public class CreateGameInstance extends AppCompatActivity implements ListFrag.li
         }
     };
 
-    //database stuff
+    //database stuff for storing player info
     private static PlayerDBHandler dbHandler;
     private Player hostPlayer;
-    private Player clientPlayer;
 
     //Tag for log info in debugging
     private static final String TAG = CreateGameInstance.class.getName();
@@ -82,68 +82,46 @@ public class CreateGameInstance extends AppCompatActivity implements ListFrag.li
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_create_game_instance);
 
-        //get player info from the main activity
-        final Bundle playerInfo = getIntent().getExtras();
-        if (!playerInfo.getBoolean("isClient")) {
-            //then this player is the host
+        //get player info
+        SharedPreferences sharePref = getSharedPreferences("user_names", Context.MODE_PRIVATE);
+        hostName = sharePref.getString("username","");
 
-            hostName = playerInfo.getString("hostName");
+        /* database initialization
+         */
+        //parameters 2 and 4 were hard coded by me, so we don need anything important in there
+        dbHandler = new PlayerDBHandler(this, null, null, 1);
+        hostPlayer = new Player(hostName, true);
 
-            /* database initialization
-             */
-            //parameters 2 and 4 were hard coded by me, so we don need anything important in there
-            dbHandler = new PlayerDBHandler(this, null, null, 1);
-            hostPlayer = new Player(hostName, true);
+        /*attempt to register service on activity creation
+         */
+        Log.d(TAG, "Creating a server");
+        try {
+            initializeServerSocket();
+            Log.d(TAG, "Created Socket");
+            initializeRegistrationListener();
+            Log.d(TAG, "Initialized Registration Listener");
+            registerService(mServerSocket.getLocalPort());
+            //add host to database
+            hostPlayer.setID(dbHandler.addPlayer(hostPlayer));
+            //TODO: test to make sure that the database is indeed being populated
+        } catch (IOException e) {
+            //notify user that connection was not established
+            TextView errorMsg = (TextView)findViewById(R.id.errorMessage);
+            errorMsg.setText(getString(R.string.error_msg));
+            errorMsg.setTextColor(Color.RED);
 
-            /*attempt to register service on activity creation
-             */
-            Log.d(TAG, "Creating a server");
-            try {
-                initializeServerSocket();
-                Log.d(TAG, "Created Socket");
-                initializeRegistrationListener();
-                Log.d(TAG, "Initialized Registration Listener");
-                registerService(mServerSocket.getLocalPort());
-                //add host to database
-                hostPlayer.setID(dbHandler.addPlayer(hostPlayer));
-                //TODO: test to make sure that the database is indeed being populated
-            } catch (IOException e) {
-                //notify user that connection was not established
-                TextView errorMsg = (TextView)findViewById(R.id.errorMessage);
-                errorMsg.setText(getString(R.string.error_msg));
-                errorMsg.setTextColor(Color.RED);
-
-                //notify log that exception was thrown during service registration
-                e.printStackTrace();
-                Log.e(TAG, "IO Exception thrown, Failed to register service.", e);
-                return;
-            }
-
-            Log.i(TAG, "Successfully registered service");
-
-            TextView displayHost = (TextView)findViewById(R.id.hostName);
-            String hostNameSet = displayHost.getText() + " " + hostName;
-            displayHost.setText(hostNameSet);
-        } else {
-            //TODO: will get hostname from database (use is_host)
-            //then this player is a client
-            Runnable addPlayerName = new Runnable() {
-                @Override
-                public void run() {
-                    synchronized (this) {
-                        try {
-                            playerNames.add(playerNames.size(), playerInfo.getString("clientName"));
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            Log.e(TAG, "cannot add player name", e);
-                        }
-                    }
-                    addPlayer.sendEmptyMessage(0);
-                }
-            };
-            Thread aPN = new Thread(addPlayerName);
-            aPN.start();
+            //notify log that exception was thrown during service registration
+            e.printStackTrace();
+            Log.e(TAG, "IO Exception thrown, Failed to register service.", e);
+            return;
         }
+
+        Log.i(TAG, "Successfully registered service");
+
+        TextView displayHost = (TextView)findViewById(R.id.hostName);
+        String hostNameSet = displayHost.getText() + " " + hostName;
+        displayHost.setText(hostNameSet);
+        //TODO: will get hostname from database (use is_host)
 
     }
 
@@ -162,7 +140,7 @@ public class CreateGameInstance extends AppCompatActivity implements ListFrag.li
     //Service control
     @Override
     protected void onPause() {
-        if (hostName != null && isRegistered) {
+        if (isRegistered) {
             mNsdManager.unregisterService(mRegistrationListener);
             isRegistered = false;
         }
@@ -172,7 +150,7 @@ public class CreateGameInstance extends AppCompatActivity implements ListFrag.li
     @Override
     protected void onResume() {
         super.onResume();
-        if (hostName != null && !isRegistered) {
+        if (!isRegistered) {
             mNsdManager.registerService(serviceInfo, NsdManager.PROTOCOL_DNS_SD, mRegistrationListener);
             isRegistered = true;
         }

@@ -61,18 +61,13 @@ public class MainActivity extends AppCompatActivity {
 
     //enter game button takes user to "EnterGameInstance" activity
     public void enterGame(View view) {
-        SharedPreferences sharePref = getSharedPreferences("user_names", Context.MODE_PRIVATE);
         Intent i = new Intent(this, EnterGameInstance.class);
-        i.putExtra("clientName", sharePref.getString("username",""));
         startActivity(i);
     }
 
     //create game button takes user to "CreateGameInstance" activity
     public void createGame(View view) {
-        SharedPreferences sharePref = getSharedPreferences("user_names", Context.MODE_PRIVATE);
         Intent i = new Intent(this, CreateGameInstance.class);
-        //pass the player's user name to the CreateGameInstance
-        i.putExtra("hostName", sharePref.getString("username",""));
         startActivity(i);
     }
 }

@@ -19,6 +19,7 @@
         </activity>
         <activity android:name=".CreateGameInstance" />
         <activity android:name=".EnterGameInstance" />
+        <activity android:name=".LobbyInstance"></activity>
     </application>
 
 </manifest>

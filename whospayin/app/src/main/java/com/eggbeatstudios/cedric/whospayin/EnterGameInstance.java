@@ -1,6 +1,8 @@
 package com.eggbeatstudios.cedric.whospayin;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
@@ -44,7 +46,10 @@ public class EnterGameInstance extends AppCompatActivity implements ListFrag.lis
     /*End server management variables */
 
 
-    /* variables for displaying games */
+    /* variables for displaying games
+    * design choice: I did not use a database here as we only
+    * need to represent the servers by string (dont need additional info)
+    * furthermore, storing a database to the phone costs hard disk space */
     private List<String> gameInstances = new Vector<String>(5,5); //where games are stored to be displayed to the user
     private ListFrag serverListFrag;
     private ListView gamesList;
@@ -78,9 +83,10 @@ public class EnterGameInstance extends AppCompatActivity implements ListFrag.lis
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_enter_game_instance);
 
+        SharedPreferences sharePref = getSharedPreferences("user_names", Context.MODE_PRIVATE);
         //get client name
-        Bundle playerInfo = getIntent().getExtras();
-        clientName = playerInfo.getString("clientName");
+        clientName = sharePref.getString("username","");
+        Log.d(TAG, "client name: " + clientName);
 
         //initialize parameters
         mNsdManager = (NsdManager)getSystemService(NSD_SERVICE);
@@ -88,7 +94,6 @@ public class EnterGameInstance extends AppCompatActivity implements ListFrag.lis
 
         //initialize listeners
         initializeDiscoveryListener();
-        initializeResolveListener();
         Log.d(TAG, "Discovery listener activated");
 
         //begin searching for services
@@ -229,30 +234,6 @@ public class EnterGameInstance extends AppCompatActivity implements ListFrag.lis
         };
     }
 
-    public void initializeResolveListener() {
-        mResolveListener = new NsdManager.ResolveListener() {
-
-            @Override
-            public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) {
-                // Called when the resolve fails.  Use the error code to debug.
-                Log.e(TAG, "Resolve failed" + errorCode);
-            }
-
-            @Override
-            public void onServiceResolved(NsdServiceInfo serviceInfo) {
-                Log.e(TAG, "Resolve Succeeded. " + serviceInfo);
-
-                if (serviceInfo.getServiceName().equals(mServiceName)) {
-                    Log.d(TAG, "Same IP.");
-                    return;
-                }
-                mServiceInfo = serviceInfo;
-                int port = mServiceInfo.getPort();
-                InetAddress host = mServiceInfo.getHost();
-            }
-        };
-    }
-
 
     //ran with the joinGame method to move player to a lobby activity
     @Override
@@ -304,13 +285,9 @@ public class EnterGameInstance extends AppCompatActivity implements ListFrag.lis
             Thread cl = new Thread(clearList);
             cl.start();
 
-            //resolve the service (dont know if this will carry to the next activity
-            mNsdManager.resolveService(selectedService, mResolveListener);
-            isClient = true;
-            //set up intent
-            Intent i = new Intent(this, CreateGameInstance.class);
-            i.putExtra("isClient", isClient);
-            i.putExtra("clientName", clientName);
+            //set up intent, send server info to be resolved by lobby instance
+            Intent i = new Intent(this, LobbyInstance.class);
+            i.putExtra("selectedService", selectedService);
             startActivity(i);
         } else {
             Log.d(TAG, "selectedService is NULL");
